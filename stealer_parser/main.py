@@ -1,4 +1,5 @@
 """Infostealer logs parser."""
+import pyzipper
 from argparse import Namespace
 from io import BytesIO
 from pathlib import Path
@@ -50,7 +51,9 @@ def read_archive(
             archive = RarFile(buffer)
 
         case ".zip":
-            archive = ZipFile(buffer)
+            archive = pyzipper.AESZipFile(buffer, mode="r")
+            if password:
+                archive.pwd = bytes(password, "utf-8")
 
         case ".7z":
             archive = SevenZipFile(buffer, password=password)

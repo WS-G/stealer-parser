@@ -1,9 +1,10 @@
 """Wrapper to manipulate several types of archive."""
 import posixpath
+import pyzipper
 from io import BytesIO
 from pathlib import Path
 from zipfile import ZipFile
-
+from zipfile import ZIP_STORED, ZIP_DEFLATED, ZIP_BZIP2, ZIP_LZMA
 from py7zr import SevenZipFile
 from py7zr.exceptions import CrcError
 from rarfile import RarFile
@@ -69,7 +70,7 @@ class ArchiveWrapper:
         Raises
         ------
         ValueError
-            If the archive root misses a filename or is closed.
+            If the archive root misses a filename or is closed.def read_file
 
         """
         self.root: RarFile | ZipFile | SevenZipFile = root
@@ -101,7 +102,7 @@ class ArchiveWrapper:
     @property
     def filename(self) -> Path:
         """Return the complete path."""
-        return Path(self.root.filename).joinpath(self.at)  # type: ignore
+        return Path(self.root.filename).joinpath(self.at)  # type: ignoredef read_file
 
     # Methods #################################################################
 
@@ -113,19 +114,24 @@ class ArchiveWrapper:
 
     def is_closed(self) -> bool:
         """Return True if the archive is closed."""
+
         if isinstance(self.root, SevenZipFile):
-            return not self.root._fileRefCnt
+            return not getattr(self.root, "_fileRefCnt", None)
 
-        if isinstance(self.root, ZipFile):
-            return not self.root.fp
+        if isinstance(self.root, (ZipFile, pyzipper.AESZipFile)):
+            return self.root.fp is None
 
-        # RarFile
-        if isinstance(self.root._rarfile, BytesIO):
-            return self.root._rarfile.closed
+        if isinstance(self.root, RarFile):
+            # Handle both BytesIO and file-like objects
+            try:
+                if isinstance(self.root._rarfile, BytesIO):
+                    return self.root._rarfile.closed
+                return not self.root._rarfile  # Fallback for file paths
+            except AttributeError:
+                return True
 
-        # NOTE: In case of Path object, will always return False because of
-        # RarFile implementation.
-        return not self.root._rarfile
+        # Unknown type — assume closed
+        return True
 
     def is_dir(self) -> bool:
         """Return True if the path points to a directory."""
@@ -195,8 +201,18 @@ class ArchiveWrapper:
 
                 with texts[filename] as buffer:
                     file_bytes = buffer.getvalue()
-
+            
             else:
+                if hasattr(self.root, "getinfo"):
+                    info = self.root.getinfo(filename)
+                    # pyzipper defines AES compression methods as 99
+                if info.compress_type not in (
+                    ZIP_STORED, ZIP_DEFLATED, ZIP_BZIP2, ZIP_LZMA, 99
+                ):
+                    raise NotImplementedError(
+                        f"Compression method {info.compress_type} not supported"
+                    )
+
                 file_bytes = self.root.read(filename)
 
             try:
