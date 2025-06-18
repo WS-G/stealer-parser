@@ -71,10 +71,10 @@ $ git clone --recurse-submodules https://github.com/lexfo/stealer-parser
 $ poetry install
 ```
 
-3. Activate the virtual environment:
+3. Run with poetry:
 
 ```console
-$ poetry shell
+$ poetry run
 ```
 
 ## Usage
