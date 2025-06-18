@@ -33,7 +33,7 @@ def dump_to_file(
     ----------
     logger : verboselogs.VerboseLogger
         The program's logger.
-    filebame : str
+    filename : str
         The file to write to.
     content : str or Any
         The data to write.
