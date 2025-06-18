@@ -307,7 +307,7 @@ def parse_user_block(parser: LogsParser, filename: str) -> bool:
             break
 
     # Append block data to output if it contains at least one attribute.
-    # Indeed, case can happen where a user block was empty but grammaticaly
+    # Indeed, case can happen where a user block was empty but grammatically
     # correct.
     # For example: "Soft: \nHost: \nUser: \nPassword:\n"
     if any(list(credential.__dict__.values())):
